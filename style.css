@@ -30,3 +30,26 @@
         padding: 10px;
     }
 }
+body { 
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
+    min-height: 100vh;
+}
+body {
+    font-family: Arial, sans-serif;
+    background-image: url('https://images.unsplash.com/photo-1557672172-298e090d0f80?w=1200');
+    background-size: cover;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    padding: 20px;
+    min-height: 100vh;
+}
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f0f0;
+    background-image: 
+        repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,.1) 10px, rgba(255,255,255,.1) 20px);
+    padding: 20px;
+    min-height: 100vh;
+}
