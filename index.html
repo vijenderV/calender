@@ -10,10 +10,17 @@
             background-color: #f5f5f5;
             padding: 20px;
         }
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 1000px;
+            margin: auto;
+            flex-wrap: wrap;
+        }
         .calendar { 
-            width: 100%; 
-            max-width: 600px; 
-            margin: auto; 
+            flex: 1;
+            min-width: 300px;
+            max-width: 600px;
             border: 1px solid #ccc; 
             border-radius: 5px; 
             background-color: white;
@@ -32,39 +39,111 @@
             padding: 8px 15px;
             cursor: pointer;
             border-radius: 5px;
+            font-weight: bold;
         }
         .header button:hover {
             background-color: #ffb3d9;
+        }
+        .header h2 {
+            margin: 0;
+            flex: 1;
+            text-align: center;
         }
         .days { 
             display: grid; 
             grid-template-columns: repeat(7, 1fr); 
         }
+        .day-header {
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            background-color: #f0f0f0;
+            border: 1px solid #eee;
+        }
+        .day-header.sunday {
+            color: red;
+        }
         .day { 
-            padding: 15px; 
+            padding: 10px; 
             text-align: center; 
             border: 1px solid #eee;
             cursor: pointer;
             position: relative;
-            min-height: 80px;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
         }
         .day:hover {
             background-color: #f0f0f0;
-            transform: scale(1.05);
         }
-        .today { 
-            background-color: yellow; 
+        .day-number {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .day.sunday .day-number {
+            color: red;
+        }
+        .day.holiday .day-number {
+            color: red;
             font-weight: bold;
         }
+        .day.today { 
+            background-color: yellow; 
+        }
+        .day.holiday {
+            background-color: #ffe6e6;
+        }
         .event-item {
-            font-size: 11px;
+            font-size: 10px;
             color: white;
             background-color: pink;
             padding: 3px 5px;
-            margin-top: 3px;
+            margin-top: 2px;
             border-radius: 3px;
             word-wrap: break-word;
             text-align: center;
+        }
+        .holiday-item {
+            font-size: 10px;
+            color: white;
+            background-color: red;
+            padding: 3px 5px;
+            margin-top: 2px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+
+        /* Holiday List Sidebar */
+        .holiday-list {
+            flex: 0 0 300px;
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .holiday-list h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid red;
+            padding-bottom: 10px;
+        }
+        .holiday-list-item {
+            padding: 10px;
+            margin: 8px 0;
+            background-color: #ffe6e6;
+            border-left: 4px solid red;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+        .holiday-list-item strong {
+            color: red;
+        }
+        .no-holidays {
+            color: #999;
+            font-style: italic;
         }
 
         /* Modal Styles */
@@ -136,17 +215,47 @@
             background: rgba(0,0,0,0.5);
             z-index: 999;
         }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            .holiday-list {
+                flex: 1;
+                max-height: 300px;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="calendar">
-        <div class="header">
-            <button id="prev">Previous</button>
-            <h2 id="monthTitle"></h2>
-            <button id="next">Next</button>
+    <div class="container">
+        <div class="calendar">
+            <div class="header">
+                <button id="prev">Previous</button>
+                <h2 id="monthTitle"></h2>
+                <button id="next">Next</button>
+            </div>
+            
+            <!-- Day Headers (Sun, Mon, Tue, etc.) -->
+            <div class="days" id="dayHeaders">
+                <div class="day-header sunday">Sun</div>
+                <div class="day-header">Mon</div>
+                <div class="day-header">Tue</div>
+                <div class="day-header">Wed</div>
+                <div class="day-header">Thu</div>
+                <div class="day-header">Fri</div>
+                <div class="day-header">Sat</div>
+            </div>
+
+            <div class="days" id="days">
+                <!-- Days will be dynamically generated here -->
+            </div>
         </div>
-        <div class="days" id="days">
-            <!-- Days will be dynamically generated here -->
+
+        <!-- Holiday List -->
+        <div class="holiday-list">
+            <h3>Holidays this month</h3>
+            <div id="holidayListContainer"></div>
         </div>
     </div>
 
@@ -165,10 +274,31 @@
         const daysContainer = document.getElementById('days');
         const prevButton = document.getElementById('prev');
         const nextButton = document.getElementById('next');
+        const holidayListContainer = document.getElementById('holidayListContainer');
 
         let currentDate = new Date();
         let selectedDate = null;
         let events = {};
+
+        // Holiday definitions (Month-Day format)
+        const holidays = {
+            '1-26': { name: 'Republic Day', country: 'India' },
+            '2-14': { name: 'Valentine\'s Day', country: 'All' },
+            '3-8': { name: 'Women\'s Day', country: 'All' },
+            '3-17': { name: 'St. Patrick\'s Day', country: 'All' },
+            '4-14': { name: 'Ambedkar Jayanti', country: 'India' },
+            '5-1': { name: 'Labour Day', country: 'All' },
+            '7-4': { name: 'Independence Day', country: 'USA' },
+            '8-15': { name: 'Independence Day', country: 'India' },
+            '8-26': { name: 'Janmashtami', country: 'India' },
+            '9-15': { name: 'Engineers Day', country: 'India' },
+            '10-2': { name: 'Gandhi Jayanti', country: 'India' },
+            '10-31': { name: 'Halloween', country: 'All' },
+            '11-1': { name: 'All Saints Day', country: 'All' },
+            '11-14': { name: 'Children\'s Day', country: 'India' },
+            '12-25': { name: 'Christmas', country: 'All' },
+            '12-31': { name: 'New Year\'s Eve', country: 'All' }
+        };
 
         // Load events from local storage
         function loadEvents() {
@@ -181,6 +311,50 @@
         // Save events to local storage
         function saveEventsToStorage() {
             localStorage.setItem('calendarEvents', JSON.stringify(events));
+        }
+
+        // Check if a date is a holiday
+        function isHoliday(day, month) {
+            const dateKey = (month + 1) + '-' + day;
+            return holidays[dateKey] ? true : false;
+        }
+
+        // Get holiday details
+        function getHolidayDetails(day, month) {
+            const dateKey = (month + 1) + '-' + day;
+            return holidays[dateKey] || null;
+        }
+
+        // Display holidays for current month
+        function displayHolidayList() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+
+            let holidayItems = [];
+            for (let day = 1; day <= lastDayOfMonth; day++) {
+                if (isHoliday(day, month)) {
+                    const holiday = getHolidayDetails(day, month);
+                    holidayItems.push({
+                        day: day,
+                        name: holiday.name,
+                        country: holiday.country
+                    });
+                }
+            }
+
+            if (holidayItems.length === 0) {
+                holidayListContainer.innerHTML = '<div class="no-holidays">No holidays this month</div>';
+            } else {
+                let html = '';
+                holidayItems.forEach(item => {
+                    html += `<div class="holiday-list-item">
+                        <strong>${item.day}</strong> - ${item.name}
+                        <br><small style="color: #666;">${item.country}</small>
+                    </div>`;
+                });
+                holidayListContainer.innerHTML = html;
+            }
         }
 
         function renderCalendar() {
@@ -201,10 +375,23 @@
             // Add day cells for the current month
             for (let day = 1; day <= lastDayOfMonth.getDate(); day++) {
                 const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
+                const isSunday = new Date(year, month, day).getDay() === 0;
+                const isHolidayDay = isHoliday(day, month);
+                const holidayInfo = getHolidayDetails(day, month);
                 const dateKey = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
                 
-                let dayHtml = `<div class="day ${isToday ? 'today' : ''}" onclick="openModal(${day}, ${month}, ${year})">
-                    <div>${day}</div>`;
+                let dayClasses = 'day';
+                if (isToday) dayClasses += ' today';
+                if (isSunday) dayClasses += ' sunday';
+                if (isHolidayDay) dayClasses += ' holiday';
+                
+                let dayHtml = `<div class="${dayClasses}" onclick="openModal(${day}, ${month}, ${year})">
+                    <div class="day-number">${day}</div>`;
+                
+                // Display holiday name
+                if (isHolidayDay) {
+                    dayHtml += `<div class="holiday-item">${holidayInfo.name}</div>`;
+                }
                 
                 // Display events for this day
                 if (events[dateKey]) {
@@ -216,12 +403,16 @@
                 dayHtml += '</div>';
                 daysContainer.innerHTML += dayHtml;
             }
+
+            // Display holiday list
+            displayHolidayList();
         }
 
         function openModal(day, month, year) {
             selectedDate = { day, month, year };
             const dateKey = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
-            document.getElementById('selectedDate').textContent = day + ' ' + new Date(year, month).toLocaleString('default', { month: 'long' }) + ' ' + year;
+            const monthName = new Date(year, month).toLocaleString('default', { month: 'long' });
+            document.getElementById('selectedDate').textContent = day + ' ' + monthName + ' ' + year;
             document.getElementById('eventInput').value = '';
             document.getElementById('eventModal').style.display = 'block';
             document.getElementById('modalOverlay').style.display = 'block';
