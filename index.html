@@ -297,7 +297,9 @@
             '11-1': { name: 'All Saints Day', country: 'All' },
             '11-14': { name: 'Children\'s Day', country: 'India' },
             '12-25': { name: 'Christmas', country: 'All' },
-            '12-31': { name: 'New Year\'s Eve', country: 'All' }
+            '12-31': { name: 'New Year\'s Eve', country: 'All' },
+            '7-1': { name: 'vijju birthday', country: 'All' }
+
         };
 
         // Load events from local storage
@@ -394,11 +396,17 @@
                 }
                 
                 // Display events for this day
-                if (events[dateKey]) {
-                    events[dateKey].forEach(event => {
-                        dayHtml += `<div class="event-item">${event}</div>`;
-                    });
-                }
+              // Display events for this day
+             if (events[dateKey]) {  
+             events[dateKey].forEach((event, index) => {
+             dayHtml += `
+            <div class="event-item">
+                ${event}
+                <button onclick="deleteEvent('${dateKey}', ${index})" style="font-size:10px; margin-left:5px; color:white; cursor:pointer;">✕</button>
+            </div>
+            `;
+             });
+              }
                 
                 dayHtml += '</div>';
                 daysContainer.innerHTML += dayHtml;
@@ -423,6 +431,16 @@
             document.getElementById('modalOverlay').style.display = 'none';
             selectedDate = null;
         }
+        function deleteEvent(dateKey, index) {
+    if (confirm('Delete this event?')) {
+        events[dateKey].splice(index, 1);
+        if (events[dateKey].length === 0) {
+            delete events[dateKey];
+        }
+        saveEventsToStorage();
+        renderCalendar();
+    }
+}
 
         function saveEvent() {
             let eventName = document.getElementById('eventInput').value.trim();
